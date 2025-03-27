@@ -8,6 +8,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from authentication.models import User
 import cloudinary
 import cloudinary.uploader
+from rest_framework import generics, permissions
+# from .models import
+# from .serializers import SubscriptionPlanSerializer, SubscriptionSerializer
+from datetime import timedelta, datetime
+from django.utils.timezone import now
 import cloudinary.api
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -15,11 +20,7 @@ import os
 from dotenv import load_dotenv
 
 
-cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-    api_key=os.getenv("CLOUDINARY_API_KEY"),
-    api_secret=os.getenv("CLOUDINARY_API_SECRET")
-)
+
 
 class LoginView(APIView):
     def post(self, request):
@@ -53,8 +54,6 @@ class RegisterUserView(APIView):
         password = request.data.get('password')
         first_name = request.data.get('first_name')
         last_name = request.data.get('last_name')
-        image = request.data.get('image')
-        print(image, "IMAGE")
         
         # Validate required fields
         if not email:
@@ -76,9 +75,7 @@ class RegisterUserView(APIView):
         
         
         try:
-            # Upload image to Cloudinary
-            upload_result = cloudinary.uploader.upload(image)
-            image_url = upload_result['secure_url']
+            
             
             # Create user with image
             user = User.objects.create_user(
@@ -86,7 +83,6 @@ class RegisterUserView(APIView):
                 password=password,
                 first_name=first_name,
                 last_name=last_name,
-                image=image_url
             )
             
             return Response({
@@ -95,15 +91,11 @@ class RegisterUserView(APIView):
                     "email": user.email,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
-                    "image": user.image
                 }
             }, status=status.HTTP_201_CREATED)
             
         except Exception as e:
-            return Response({"error": f"Failed to upload image: {str(e)}"}, 
+            print(e, "ERROR")
+            return Response({"error": "Network error"}, 
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-            
-            
-            
             
