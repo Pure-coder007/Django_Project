@@ -1,5 +1,13 @@
 from django.contrib import admin
-from .models import User, Category, Content, Like, Views, SubscriptionPlan, UserSubscription
+from .models import (
+    User,
+    Category,
+    Content,
+    Like,
+    Views,
+    SubscriptionPlan,
+    UserSubscription,
+)
 
 # Register your models here.
 

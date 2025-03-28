@@ -9,6 +9,7 @@ from authentication.models import User
 import cloudinary
 import cloudinary.uploader
 from rest_framework import generics, permissions
+
 # from .models import
 # from .serializers import SubscriptionPlanSerializer, SubscriptionSerializer
 from datetime import timedelta, datetime
@@ -20,82 +21,183 @@ import os
 from dotenv import load_dotenv
 
 
-
-
 class LoginView(APIView):
     def post(self, request):
-        email=request.data.get('email')
-        password=request.data.get('password')
-        
+        email = request.data.get("email")
+        password = request.data.get("password")
+
         if not email:
-            return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
         if not password:
-            return Response({"error": "Password is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        user=authenticate(email=email, password=password)
+            return Response(
+                {"error": "Password is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = authenticate(email=email, password=password)
         if not user:
-            return Response({"error": "Invalid email or password"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"error": "Invalid email or password"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
         access_token = str(RefreshToken.for_user(user).access_token)
         refresh_token = str(RefreshToken.for_user(user))
-        
-        return Response({"message": "Login successful",
-                        "access_token": access_token,
-                        "refresh_token": refresh_token,
-                        "user": user.email}, status=status.HTTP_200_OK)
-        
-        
-        
-        
 
-        
+        return Response(
+            {
+                "message": "Login successful",
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "user": user.email,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class RegisterUserView(APIView):
     def post(self, request):
-        email = request.data.get('email')
-        password = request.data.get('password')
-        first_name = request.data.get('first_name')
-        last_name = request.data.get('last_name')
-        
-        # Validate required fields
+        email = request.data.get("email")
+        password = request.data.get("password")
+        first_name = request.data.get("first_name")
+        last_name = request.data.get("last_name")
+
         if not email:
-            return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
         if not password:
-            return Response({"error": "Password is required"}, status=status.HTTP_400_BAD_REQUEST)
-        if not image:
-            return Response({"error": "Profile image is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(
+                {"error": "Password is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
         if User.objects.filter(email=email).exists():
-            return Response({"error": "Email already exists"}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(
+                {"error": "Email already exists"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
         try:
-            # Validate password using Django's built-in validators
             validate_password(password)
         except ValidationError as e:
             return Response({"error": e.messages}, status=status.HTTP_400_BAD_REQUEST)
 
-        
-        
         try:
-            
-            
-            # Create user with image
+
             user = User.objects.create_user(
                 email=email,
                 password=password,
                 first_name=first_name,
                 last_name=last_name,
             )
-            
-            return Response({
-                "message": "Registration successful",
-                "user": {
-                    "email": user.email,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name,
-                }
-            }, status=status.HTTP_201_CREATED)
-            
+
+            return Response(
+                {
+                    "message": "Registration successful",
+                    "user": {
+                        "email": user.email,
+                        "first_name": user.first_name,
+                        "last_name": user.last_name,
+                    },
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
         except Exception as e:
             print(e, "ERROR")
-            return Response({"error": "Network error"}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
+            return Response(
+                {"error": "Network error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+# Register superuser
+class RegisterSuperuserView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        password = request.data.get("password")
+        first_name = request.data.get("first_name")
+        last_name = request.data.get("last_name")
+
+        # Validate required fields
+        if not email:
+            return Response(
+                {"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        if not password:
+            return Response(
+                {"error": "Password is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if User.objects.filter(email=email).exists():
+            return Response(
+                {"error": "Email already exists"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            return Response({"error": e.messages}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+
+            user = User.objects.create_superuser(
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+            )
+
+            return Response(
+                {
+                    "message": "Superuser registration successful",
+                    "user": {
+                        "email": user.email,
+                        "first_name": user.first_name,
+                        "last_name": user.last_name,
+                    },
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        except Exception as e:
+            print(e, "ERROR")
+            return Response(
+                {"error": "Network error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class LoginSuperuser(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        password = request.data.get("password")
+
+        if not email:
+            return Response(
+                {"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        if not password:
+            return Response(
+                {"error": "Password is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = authenticate(email=email, password=password)
+        if not user:
+            return Response(
+                {"error": "Invalid email or password"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        if not user.is_superuser:
+            return Response(
+                {"error": "You are not a superuser"}, status=status.HTTP_403_FORBIDDEN
+            )
+        access_token = str(RefreshToken.for_user(user).access_token)
+        refresh_token = str(RefreshToken.for_user(user))
+
+        return Response(
+            {
+                "message": "Login successful",
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "user": user.email,
+            },
+            status=status.HTTP_200_OK,
+        )
